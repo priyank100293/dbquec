@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decipher Dashboard Generator</title>
+    <style>
+        :root {
+            --bg-color: #f5f5f7;
+            --surface: #ffffff;
+            --border: #d2d2d7;
+            --text-main: #1d1d1f;
+            --text-muted: #86868b;
+            --accent: #0071e3;
+            --accent-hover: #0077ed;
+            --success: #34c759;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: var(--surface);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+        p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+        textarea {
+            width: 100%;
+            height: 400px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            font-size: 13px;
+            background-color: #fafafa;
+            resize: vertical;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        textarea:focus {
+            border-color: var(--accent);
+            background-color: #ffffff;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        button {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s, transform 0.1s;
+        }
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        button.secondary {
+            background-color: transparent;
+            color: var(--accent);
+            border: 1px solid var(--border);
+        }
+        button.secondary:hover {
+            background-color: rgba(0, 113, 227, 0.05);
+            border-color: var(--accent);
+        }
+        button.success-feedback {
+            color: var(--success) !important;
+            border-color: var(--success) !important;
+            background-color: rgba(52, 199, 89, 0.05) !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Dashboard Code Generator</h1>
+    <p>Paste your Decipher XML questions on the left. The output features sequential layout execution, clean single-cell configurations, bold options, and header integrated titles.</p>
+    
+    <div class="grid">
+        <div class="input-group">
+            <label for="xmlInput">Decipher XML Input</label>
+            <textarea id="xmlInput" placeholder="<radio label='QP1'>...</radio>"></textarea>
+        </div>
+        <div class="input-group">
+            <label for="codeOutput">Generated Dashboard Code</label>
+            <textarea id="codeOutput" readonly placeholder="Your HTML, CSS, and JS will appear here..."></textarea>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button id="copyBtn" class="secondary" onclick="copyCode()">Copy Code</button>
+        <button onclick="generateCode()">Generate Dashboard Code</button>
+    </div>
+</div>
+
+<script>
+function generateCode() {
+    const xmlText = document.getElementById('xmlInput').value;
+    
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(`<survey>${xmlText}</survey>`, "text/xml");
+    const questions = xmlDoc.querySelectorAll("radio");
+    
+    let allQs = [];
+    
+    questions.forEach(q => {
+        const id = q.getAttribute("label");
+        if(!id) return;
+        
+        let title = q.querySelector("title");
+        title = title ? title.textContent.trim() : id;
+        
+        const rowNodes = q.querySelectorAll("row");
+        const colNodes = q.querySelectorAll("col");
+        
+        let rows = Array.from(rowNodes).map(r => ({
+            id: r.getAttribute("label"),
+            text: r.textContent.trim()
+        }));
+        
+        let cols = Array.from(colNodes).map(c => ({
+            id: c.getAttribute("label"),
+            text: c.textContent.trim()
+        }));
+        
+        if(cols.length > 0) {
+            allQs.push({ type: 'grid', id, title, rows, cols });
+        } else {
+            allQs.push({ type: 'standard', id, title, rows });
+        }
+    });
+    
+    // ---------------------------------------------------------
+    // BUILD THE HTML STRING
+    // ---------------------------------------------------------
+    let out = `html width=12\n\n<div id="resultsDIVid" class="resultsDIV">\n\n`;
+    
+    allQs.forEach((q, index) => {
+        let marginTop = index === 0 ? "0px" : "25px";
+        
+        if (q.type === 'standard') {
+            out += `\n`;
+            out += `\n`;
+            out += `\n`;
+            out += `<table class="columnHeaders" id="${q.id}_Table" style="margin-top: ${marginTop};">\n`;
+            out += `    <tr class="headerRow">\n`;
+            out += `        <td class="ch1"><span class="headerClick" onclick="toggleSection('${q.id}');">${q.id}. ${q.title}</span></td>\n`;
+            out += `        <td class="chDataHeader">Count (%)</td>\n`;
+            out += `    </tr>\n\n`;
+            
+            out += `\n`;
+            out += `    <tbody id="${q.id}">\n`;
+            
+            q.rows.forEach(r => {
+                out += `        <tr class="sectionRow">\n`;
+                out += `            <td class="ch1" style="padding-left: 15px;"><b>{{${q.id}.${r.id}:title}}</b></td>\n`;
+                out += `            <td class="chData"><span class="valCount">{{${q.id}.${r.id}}}</span><br><span class="valPerc"></span></td>\n`;
+                out += `         </tr>\n`;
+            });
+            
+            out += `        <tr class="sectionRow totalRow">\n`;
+            out += `            <td class="ch1" style="padding-left: 15px;"><b>Total</b></td> \n`;
+            out += `            <td class="chTotalData"><span class="valCount"></span><br><span class="valPerc"></span></td>\n`;
+            out += `        </tr>\n`;
+            out += `    </tbody>\n`;
+            out += `\n`;
+            out += `</table>\n\n`;
+            
+        } else if (q.type === 'grid') {
+            out += `\n`;
+            out += `\n`;
+            out += `\n`;
+            out += `<table class="columnHeaders" id="${q.id}_Table" style="margin-top: ${marginTop};">\n`;
+            out += `    <tr class="headerRow">\n`;
+            out += `        <td class="chBrand">${q.id}. ${q.title}</td>\n`;
+            
+            q.cols.forEach(c => {
+                out += `        <td class="chScale">${c.text}</td>\n`;
+            });
+            out += `        <td class="chTotal">Total</td>\n`;
+            out += `    </tr>\n`;
+            
+            q.rows.forEach(r => {
+                out += `    \n`;
+                out += `    <tr class="gridRow">\n`;
+                out += `        <td class="chBrand"><b>${r.text}</b></td>\n`;
+                q.cols.forEach(c => {
+                    out += `        <td class="chData"><span class="valCount">{{${q.id}.${r.id}.${c.id}}}</span><br><span class="valPerc"></span></td>\n`;
+                });
+                out += `        <td class="chTotalData"></td>\n`;
+                out += `    </tr>\n`;
+            });
+            out += `</table>\n\n`;
+        }
+    });
+    
+    out += `</div>\n\n`;
+    
+    out += `<style>
+/* ------------------------------------------- */
+/* GLOBAL TABLE CSS                            */
+/* ------------------------------------------- */
+.columnHeaders { width: 100%; border-collapse: collapse; font-family: sans-serif; font-size: 14px;}
+.columnHeaders .headerRow td { text-align: center; font-weight: bold; background-color: #ededed;}
+.columnHeaders td { border: 1px solid #b6bdc6; padding: 6px; }
+
+/* DATA FORMATTING */
+.chData { text-align: center; background-color: #fff; }
+.chTotalData { text-align: center; font-weight: bold; background-color: #d3d3d3; }
+.valCount { font-weight: bold; font-size: 15px; color: black; }
+.valPerc { font-size: 12px; color: #555; }
+
+/* ------------------------------------------- */
+/* CSS FOR VERTICAL QUESTIONS                  */
+/* ------------------------------------------- */
+.ch1 { width: 75%; text-align: left; }
+.chDataHeader { width: 25%; text-align: center; }
+.headerClick { cursor: pointer; display: block; }
+.totalRow .chTotalData { background-color: #d3d3d3; font-weight: bold; }
+
+/* ------------------------------------------- */
+/* CSS FOR HORIZONTAL GRID QUESTIONS           */
+/* ------------------------------------------- */
+.chBrand { width: 25%; text-align: left; background-color: #f9f9f9; }
+.chScale { width: 12%; }
+.chTotal { width: 15%; }
+</style>
+
+<script>
+setTimeout(function(){
+    calculateStandardData();
+    calculateGridPercentages();
+}, 400);
+
+/* TOGGLE ROW VISIBILITY FOR VERTICAL TABLES */
+function toggleSection(secNum){
+    $('#' + secNum).toggle(400);
+}
+
+/* MATH FOR VERTICAL QUESTIONS */
+function calculateStandardData(){
+    $('tbody').each(function(){
+        var actualCountTotal = 0;
+        var rows = $(this).find('.sectionRow:not(.totalRow)');
+        
+        if(rows.length === 0) return;
+
+        rows.each(function() {
+            var countText = $(this).find('.valCount').text().replace(/,/g, '').trim();
+            var count = parseInt(countText) || 0;
+            actualCountTotal += count;
+        });
+
+        rows.each(function() {
+            var countText = $(this).find('.valCount').text().replace(/,/g, '').trim();
+            var count = parseInt(countText) || 0;
+            var perc = 0;
+            
+            if (actualCountTotal > 0) {
+                perc = (count / actualCountTotal) * 100;
+            }
+            
+            $(this).find('.valPerc').text("(" + perc.toFixed(1) + "%)");
+        });
+
+        $(this).find('.totalRow .valCount').text(actualCountTotal);
+        var totalPerc = actualCountTotal > 0 ? "(100.0%)" : "(0.0%)";
+        $(this).find('.totalRow .valPerc').text(totalPerc);
+    });
+}
+
+/* MATH FOR HORIZONTAL GRID QUESTIONS */
+function calculateGridPercentages(){
+    $('.gridRow').each(function(){
+        var rowTotal = 0;
+        var counts = $(this).find('.valCount');
+        
+        counts.each(function() {
+            var valText = $(this).text().replace(/,/g, '').trim();
+            var val = parseInt(valText) || 0;
+            rowTotal += val;
+        });
+        
+        $(this).find('.chTotalData').text(rowTotal);
+        
+        $(this).find('.chData').each(function() {
+            var countElem = $(this).find('.valCount');
+            var percElem = $(this).find('.valPerc');
+            var countText = countElem.text().replace(/,/g, '').trim();
+            var count = parseInt(countText) || 0;
+            var perc = 0;
+            
+            if (rowTotal > 0) {
+                perc = (count / rowTotal) * 100;
+            }
+            
+            percElem.text("(" + perc.toFixed(1) + "%)");
+        });
+    });
+}
+<\/script>
+end`;
+
+    document.getElementById('codeOutput').value = out;
+}
+
+function copyCode() {
+    const outputField = document.getElementById('codeOutput');
+    const copyBtn = document.getElementById('copyBtn');
+    
+    if (!outputField.value) return;
+    
+    navigator.clipboard.writeText(outputField.value).then(() => {
+        const originalText = copyBtn.innerText;
+        copyBtn.innerText = "Copied!";
+        copyBtn.classList.add('success-feedback');
+        
+        setTimeout(() => {
+            copyBtn.innerText = originalText;
+            copyBtn.classList.remove('success-feedback');
+        }, 2000);
+    }).catch(err => {
+        console.error("Failed to copy code text: ", err);
+    });
+}
+</script>
+</body>
+</html>
