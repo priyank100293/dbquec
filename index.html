@@ -121,7 +121,7 @@
 
 <div class="container">
     <h1>Dashboard Code Generator</h1>
-    <p>Paste your Decipher XML questions on the left. The output features sequential layout execution, clean single-cell configurations, bold options, and header integrated titles.</p>
+    <p>Paste your Decipher XML questions on the left. The tool will parse and hardcode the exact XML text for all questions, rows, and columns.</p>
     
     <div class="grid">
         <div class="input-group">
@@ -141,8 +141,21 @@
 </div>
 
 <script>
+// UTILITY: Sanitize text to valid ASCII replacements to prevent UTF-8 rendering errors
+function sanitizeText(str) {
+    return str
+        .replace(/[\u2018\u2019]/g, "'") // Replace smart single quotes
+        .replace(/[\u201C\u201D]/g, '"') // Replace smart double quotes
+        .replace(/[\u2013\u2014]/g, '-') // Replace en and em dashes
+        .replace(/\u2026/g, '...')       // Replace ellipsis
+        .replace(/[\u200B-\u200D\uFEFF]/g, ''); // Remove zero-width hidden characters
+}
+
 function generateCode() {
-    const xmlText = document.getElementById('xmlInput').value;
+    let rawText = document.getElementById('xmlInput').value;
+    
+    // Pass the raw XML through the ASCII/UTF-8 sanitizer first
+    const xmlText = sanitizeText(rawText);
     
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(`<survey>${xmlText}</survey>`, "text/xml");
@@ -191,6 +204,7 @@ function generateCode() {
             out += `\n`;
             out += `<table class="columnHeaders" id="${q.id}_Table" style="margin-top: ${marginTop};">\n`;
             out += `    <tr class="headerRow">\n`;
+            // Reverted question title back to hardcoded text
             out += `        <td class="ch1"><span class="headerClick" onclick="toggleSection('${q.id}');">${q.id}. ${q.title}</span></td>\n`;
             out += `        <td class="chDataHeader">Count (%)</td>\n`;
             out += `    </tr>\n\n`;
@@ -200,7 +214,7 @@ function generateCode() {
             
             q.rows.forEach(r => {
                 out += `        <tr class="sectionRow">\n`;
-                out += `            <td class="ch1" style="padding-left: 15px;"><b>{{${q.id}.${r.id}:title}}</b></td>\n`;
+                out += `            <td class="ch1" style="padding-left: 15px;"><b>${r.text}</b></td>\n`;
                 out += `            <td class="chData"><span class="valCount">{{${q.id}.${r.id}}}</span><br><span class="valPerc"></span></td>\n`;
                 out += `         </tr>\n`;
             });
@@ -219,6 +233,7 @@ function generateCode() {
             out += `\n`;
             out += `<table class="columnHeaders" id="${q.id}_Table" style="margin-top: ${marginTop};">\n`;
             out += `    <tr class="headerRow">\n`;
+            // Reverted question title back to hardcoded text
             out += `        <td class="chBrand">${q.id}. ${q.title}</td>\n`;
             
             q.cols.forEach(c => {
