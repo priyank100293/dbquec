@@ -121,7 +121,7 @@
 
 <div class="container">
     <h1>Dashboard Code Generator</h1>
-    <p>Paste your Decipher XML questions on the left. The tool will parse and hardcode the exact XML text for all questions, rows, and columns.</p>
+    <p>Paste your Decipher XML questions on the left. The tool will safely parse radio and checkbox structures while neutralizing XML formatting errors.</p>
     
     <div class="grid">
         <div class="input-group">
@@ -141,25 +141,29 @@
 </div>
 
 <script>
-// UTILITY: Sanitize text to valid ASCII replacements to prevent UTF-8 rendering errors
+// UTILITY: Advanced XML Sanitizer
+// Protects the DOMParser from crashing on common survey platform quirks
 function sanitizeText(str) {
     return str
-        .replace(/[\u2018\u2019]/g, "'") // Replace smart single quotes
-        .replace(/[\u201C\u201D]/g, '"') // Replace smart double quotes
-        .replace(/[\u2013\u2014]/g, '-') // Replace en and em dashes
-        .replace(/\u2026/g, '...')       // Replace ellipsis
-        .replace(/[\u200B-\u200D\uFEFF]/g, ''); // Remove zero-width hidden characters
+        .replace(/[\u2018\u2019]/g, "'") // Smart single quotes
+        .replace(/[\u201C\u201D]/g, '"') // Smart double quotes
+        .replace(/[\u2013\u2014]/g, '-') // Em/En dashes
+        .replace(/\u2026/g, '...')       // Ellipsis
+        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Zero-width characters
+        .replace(/\s+([a-zA-Z0-9_-]+):([a-zA-Z0-9_-]+)=/g, ' $1_$2=') // Fixes fatal namespace errors (e.g. ss:questionClassNames)
+        .replace(/&(?!(?:apos|quot|[gl]t|amp);|#)/g, '&amp;') // Fixes unescaped ampersands
+        .replace(/<(?=[\s0-9])/g, '&lt;'); // Fixes loose less-than signs (e.g. Age < 18)
 }
 
 function generateCode() {
     let rawText = document.getElementById('xmlInput').value;
     
-    // Pass the raw XML through the ASCII/UTF-8 sanitizer first
     const xmlText = sanitizeText(rawText);
-    
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(`<survey>${xmlText}</survey>`, "text/xml");
-    const questions = xmlDoc.querySelectorAll("radio");
+    
+    // Now querying for both radios AND checkboxes
+    const questions = xmlDoc.querySelectorAll("radio, checkbox");
     
     let allQs = [];
     
@@ -193,7 +197,7 @@ function generateCode() {
     // ---------------------------------------------------------
     // BUILD THE HTML STRING
     // ---------------------------------------------------------
-    let out = `html width=12\n\n<div id="resultsDIVid" class="resultsDIV">\n\n`;
+    let out = `filter id=db-9 default=1 "status.qualified"\n\nhtml width=12\n\n<div id="resultsDIVid" class="resultsDIV">\n\n`;
     
     allQs.forEach((q, index) => {
         let marginTop = index === 0 ? "0px" : "25px";
@@ -204,7 +208,6 @@ function generateCode() {
             out += `\n`;
             out += `<table class="columnHeaders" id="${q.id}_Table" style="margin-top: ${marginTop};">\n`;
             out += `    <tr class="headerRow">\n`;
-            // Reverted question title back to hardcoded text
             out += `        <td class="ch1"><span class="headerClick" onclick="toggleSection('${q.id}');">${q.id}. ${q.title}</span></td>\n`;
             out += `        <td class="chDataHeader">Count (%)</td>\n`;
             out += `    </tr>\n\n`;
@@ -233,7 +236,6 @@ function generateCode() {
             out += `\n`;
             out += `<table class="columnHeaders" id="${q.id}_Table" style="margin-top: ${marginTop};">\n`;
             out += `    <tr class="headerRow">\n`;
-            // Reverted question title back to hardcoded text
             out += `        <td class="chBrand">${q.id}. ${q.title}</td>\n`;
             
             q.cols.forEach(c => {
