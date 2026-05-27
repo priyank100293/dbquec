@@ -115,6 +115,15 @@
             border-color: var(--success) !important;
             background-color: rgba(52, 199, 89, 0.05) !important;
         }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            padding-top: 15px;
+            letter-spacing: 0.3px;
+        }
     </style>
 </head>
 <body>
@@ -138,21 +147,24 @@
         <button id="copyBtn" class="secondary" onclick="copyCode()">Copy Code</button>
         <button onclick="generateCode()">Generate Dashboard Code</button>
     </div>
+
+    <div class="footer">
+        Powered by Priyank and AI !
+    </div>
 </div>
 
 <script>
 // UTILITY: Advanced XML Sanitizer
-// Protects the DOMParser from crashing on common survey platform quirks
 function sanitizeText(str) {
     return str
-        .replace(/[\u2018\u2019]/g, "'") // Smart single quotes
-        .replace(/[\u201C\u201D]/g, '"') // Smart double quotes
-        .replace(/[\u2013\u2014]/g, '-') // Em/En dashes
-        .replace(/\u2026/g, '...')       // Ellipsis
-        .replace(/[\u200B-\u200D\uFEFF]/g, '') // Zero-width characters
-        .replace(/\s+([a-zA-Z0-9_-]+):([a-zA-Z0-9_-]+)=/g, ' $1_$2=') // Fixes fatal namespace errors (e.g. ss:questionClassNames)
-        .replace(/&(?!(?:apos|quot|[gl]t|amp);|#)/g, '&amp;') // Fixes unescaped ampersands
-        .replace(/<(?=[\s0-9])/g, '&lt;'); // Fixes loose less-than signs (e.g. Age < 18)
+        .replace(/[\u2018\u2019]/g, "'") 
+        .replace(/[\u201C\u201D]/g, '"') 
+        .replace(/[\u2013\u2014]/g, '-') 
+        .replace(/\u2026/g, '...')       
+        .replace(/[\u200B-\u200D\uFEFF]/g, '') 
+        .replace(/\s+([a-zA-Z0-9_-]+):([a-zA-Z0-9_-]+)=/g, ' $1_$2=') 
+        .replace(/&(?!(?:apos|quot|[gl]t|amp);|#)/g, '&amp;') 
+        .replace(/<(?=[\s0-9])/g, '&lt;'); 
 }
 
 function generateCode() {
@@ -162,7 +174,6 @@ function generateCode() {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(`<survey>${xmlText}</survey>`, "text/xml");
     
-    // Now querying for both radios AND checkboxes
     const questions = xmlDoc.querySelectorAll("radio, checkbox");
     
     let allQs = [];
@@ -204,15 +215,12 @@ function generateCode() {
         
         if (q.type === 'standard') {
             out += `\n`;
-            out += `\n`;
-            out += `\n`;
             out += `<table class="columnHeaders" id="${q.id}_Table" style="margin-top: ${marginTop};">\n`;
             out += `    <tr class="headerRow">\n`;
             out += `        <td class="ch1"><span class="headerClick" onclick="toggleSection('${q.id}');">${q.id}. ${q.title}</span></td>\n`;
             out += `        <td class="chDataHeader">Count (%)</td>\n`;
             out += `    </tr>\n\n`;
             
-            out += `\n`;
             out += `    <tbody id="${q.id}">\n`;
             
             q.rows.forEach(r => {
@@ -227,12 +235,9 @@ function generateCode() {
             out += `            <td class="chTotalData"><span class="valCount"></span><br><span class="valPerc"></span></td>\n`;
             out += `        </tr>\n`;
             out += `    </tbody>\n`;
-            out += `\n`;
             out += `</table>\n\n`;
             
         } else if (q.type === 'grid') {
-            out += `\n`;
-            out += `\n`;
             out += `\n`;
             out += `<table class="columnHeaders" id="${q.id}_Table" style="margin-top: ${marginTop};">\n`;
             out += `    <tr class="headerRow">\n`;
@@ -245,7 +250,6 @@ function generateCode() {
             out += `    </tr>\n`;
             
             q.rows.forEach(r => {
-                out += `    \n`;
                 out += `    <tr class="gridRow">\n`;
                 out += `        <td class="chBrand"><b>${r.text}</b></td>\n`;
                 q.cols.forEach(c => {
